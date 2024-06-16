@@ -20,6 +20,7 @@
  * SOFTWARE.
  */
 
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Data;
@@ -88,6 +89,59 @@ public class BMesh
         edgeAttributes = new List<AttributeDefinition>();
         loopAttributes = new List<AttributeDefinition>();
         faceAttributes = new List<AttributeDefinition>();
+    }
+
+    /// <summary>
+    /// Creates a copy of this <see cref="BMesh"/>.
+    /// </summary>
+    /// <returns>New <see cref="BMesh"/> instance.</returns>
+    /// <exception cref="InvalidOperationException">Throws if there are any faces with less than 2 or more than 4 vertices.</exception>
+    public BMesh Clone()
+    {
+        BMesh newMesh = new BMesh();
+
+        // Clone vertices.
+        newMesh.vertices = vertices
+            .Select(v => new Vertex(v.point)
+            {
+                id = v.id,
+            })
+            .ToList();
+
+        // Clones edges.
+        foreach (var edge in edges)
+        {
+            // Reference vertex id of existing edges
+            var v1 = newMesh.vertices.Single(v => v.id == edge.vert1.id);
+            var v2 = newMesh.vertices.Single(v => v.id == edge.vert2.id);
+
+            newMesh.AddEdge(v1, v2);
+        }
+
+        // Clone faces
+        foreach (var face in faces)
+        {
+            var faceVertices = face.NeighborVertices();
+
+            switch (face.vertcount)
+            {
+                case 2:
+                    newMesh.AddFace(faceVertices[0].id, faceVertices[1].id);
+                    break;
+                case 3:
+                    newMesh.AddFace(faceVertices[0].id, faceVertices[1].id, faceVertices[2].id);
+                    break;
+                case 4:
+                    newMesh.AddFace(faceVertices[0].id, faceVertices[1].id, faceVertices[2].id, faceVertices[3].id);
+                    break;
+                default:
+                    throw new InvalidOperationException("Unsupported face with " + face.vertcount.ToString() + " vertices.");
+            }
+        }
+
+        // TODO: clone attributes
+
+        return newMesh;
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -428,7 +482,7 @@ public class BMesh
                 Loop it = this.loop;
                 do
                 {
-                     edges.Add(it.edge);
+                    edges.Add(it.edge);
                     it = it.next;
                 } while (it != this.loop);
             }
@@ -751,15 +805,15 @@ public class BMesh
             switch (baseType)
             {
                 case AttributeBaseType.Int:
-                {
-                    var valueAsInt = value as IntAttributeValue;
-                    return valueAsInt != null && valueAsInt.data.Length == dimensions;
-                }
+                    {
+                        var valueAsInt = value as IntAttributeValue;
+                        return valueAsInt != null && valueAsInt.data.Length == dimensions;
+                    }
                 case AttributeBaseType.Float:
-                {
-                    var valueAsFloat = value as FloatAttributeValue;
-                    return valueAsFloat != null && valueAsFloat.data.Length == dimensions;
-                }
+                    {
+                        var valueAsFloat = value as FloatAttributeValue;
+                        return valueAsFloat != null && valueAsFloat.data.Length == dimensions;
+                    }
                 case AttributeBaseType.Face:
                     {
                         var valueAsFace = value as FaceAttributeValue;
@@ -889,7 +943,7 @@ public class BMesh
         public FaceAttributeValue() { }
         public FaceAttributeValue(Face f)
         {
-            data = new Face[] { f};
+            data = new Face[] { f };
         }
 
         public static float Distance(FaceAttributeValue value1, FaceAttributeValue value2)
@@ -899,7 +953,7 @@ public class BMesh
             float s = 0;
             for (int i = 0; i < n; ++i)
             {
-                float diff = Vector3.Distance(value1.data[i].Center(),value2.data[i].Center());
+                float diff = Vector3.Distance(value1.data[i].Center(), value2.data[i].Center());
                 s += diff;
             }
             return s;
@@ -916,7 +970,7 @@ public class BMesh
         }
         public GameObjectAttributeValue(GameObject g, GameObject g2)
         {
-            data = new GameObject[] { g, g2};
+            data = new GameObject[] { g, g2 };
         }
 
         public static float Distance(GameObjectAttributeValue value1, GameObjectAttributeValue value2)
@@ -1071,7 +1125,7 @@ public class BMesh
         }
     }
     #endregion
-    
+
     ///////////////////////////////////////////////////////////////////////////
     #region [Vertex Attribute Methods]
 
