@@ -428,7 +428,7 @@ public class BMesh
                 Loop it = this.loop;
                 do
                 {
-                    edges.Add(it.edge);
+                     edges.Add(it.edge);
                     it = it.next;
                 } while (it != this.loop);
             }
@@ -729,6 +729,8 @@ public class BMesh
     {
         Int,
         Float,
+        Face,
+        GameObject
     }
 
     /**
@@ -758,6 +760,16 @@ public class BMesh
                     var valueAsFloat = value as FloatAttributeValue;
                     return valueAsFloat != null && valueAsFloat.data.Length == dimensions;
                 }
+                case AttributeBaseType.Face:
+                    {
+                        var valueAsFace = value as FaceAttributeValue;
+                        return valueAsFace != null && valueAsFace.data.Length == dimensions;
+                    }
+                case AttributeBaseType.GameObject:
+                    {
+                        var valueAsFace = value as GameObjectAttributeValue;
+                        return valueAsFace != null && valueAsFace.data.Length == dimensions;
+                    }
                 default:
                     Debug.Assert(false);
                     return false;
@@ -789,6 +801,18 @@ public class BMesh
                 valueAsFloat.data.CopyTo(data, 0);
                 return new FloatAttributeValue { data = data };
             }
+            if (value is FaceAttributeValue valueAsFace)
+            {
+                var data = new Face[valueAsFace.data.Length];
+                valueAsFace.data.CopyTo(data, 0);
+                return new FaceAttributeValue { data = data };
+            }
+            if (value is GameObjectAttributeValue valueAsObject)
+            {
+                var data = new GameObject[valueAsObject.data.Length];
+                valueAsObject.data.CopyTo(data, 0);
+                return new GameObjectAttributeValue { data = data };
+            }
             Debug.Assert(false);
             return null;
         }
@@ -813,6 +837,20 @@ public class BMesh
                     return FloatAttributeValue.Distance(value1AsFloat, value2AsFloat);
                 }
             }
+            if (value1 is FaceAttributeValue value1AsFace)
+            {
+                if (value2 is FaceAttributeValue value2AsFace)
+                {
+                    return FaceAttributeValue.Distance(value1AsFace, value2AsFace);
+                }
+            }
+            if (value1 is GameObjectAttributeValue value1AsGameObject)
+            {
+                if (value2 is GameObjectAttributeValue value2AsGameObject)
+                {
+                    return GameObjectAttributeValue.Distance(value1AsGameObject, value2AsGameObject);
+                }
+            }
             return float.PositiveInfinity;
         }
 
@@ -833,7 +871,68 @@ public class BMesh
         {
             return this as IntAttributeValue;
         }
+
+        public FaceAttributeValue asFace()
+        {
+            return this as FaceAttributeValue;
+        }
+
+        public GameObjectAttributeValue asGameObject()
+        {
+            return this as GameObjectAttributeValue;
+        }
     }
+    public class FaceAttributeValue : AttributeValue
+    {
+        public Face[] data;
+
+        public FaceAttributeValue() { }
+        public FaceAttributeValue(Face f)
+        {
+            data = new Face[] { f};
+        }
+
+        public static float Distance(FaceAttributeValue value1, FaceAttributeValue value2)
+        {
+            int n = value1.data.Length;
+            if (n != value2.data.Length) return float.PositiveInfinity;
+            float s = 0;
+            for (int i = 0; i < n; ++i)
+            {
+                float diff = Vector3.Distance(value1.data[i].Center(),value2.data[i].Center());
+                s += diff;
+            }
+            return s;
+        }
+    }
+    public class GameObjectAttributeValue : AttributeValue
+    {
+        public GameObject[] data;
+
+        public GameObjectAttributeValue() { }
+        public GameObjectAttributeValue(GameObject g)
+        {
+            data = new GameObject[] { g };
+        }
+        public GameObjectAttributeValue(GameObject g, GameObject g2)
+        {
+            data = new GameObject[] { g, g2};
+        }
+
+        public static float Distance(GameObjectAttributeValue value1, GameObjectAttributeValue value2)
+        {
+            int n = value1.data.Length;
+            if (n != value2.data.Length) return float.PositiveInfinity;
+            float s = 0;
+            for (int i = 0; i < n; ++i)
+            {
+                float diff = Vector3.Distance(value1.data[i].transform.position, value2.data[i].transform.position);
+                s += diff;
+            }
+            return s;
+        }
+    }
+
     public class IntAttributeValue : AttributeValue
     {
         public int[] data;
@@ -961,6 +1060,10 @@ public class BMesh
                     return new IntAttributeValue { data = new int[type.dimensions] };
                 case AttributeBaseType.Float:
                     return new FloatAttributeValue { data = new float[type.dimensions] };
+                case AttributeBaseType.Face:
+                    return new FaceAttributeValue { data = new Face[type.dimensions] };
+                case AttributeBaseType.GameObject:
+                    return new GameObjectAttributeValue { data = new GameObject[type.dimensions] };
                 default:
                     Debug.Assert(false);
                     return new AttributeValue();
