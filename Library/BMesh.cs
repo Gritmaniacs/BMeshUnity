@@ -139,7 +139,7 @@ public class BMesh
             }
         }
 
-        // TODO: clone attributes
+        // TODO: clone vertex attributes
 
         return newMesh;
     }
@@ -515,12 +515,25 @@ public class BMesh
     public Vertex AddVertex(Vertex vert)
     {
         EnsureVertexAttributes(vert);
+        EnsureVertexId(vert);
         vertices.Add(vert);
         return vert;
     }
     public Vertex AddVertex(Vector3 point)
     {
-        return AddVertex(new Vertex(point));
+        var newVertexId = 0;
+
+        if (vertices.Count > 0)
+        {
+            newVertexId = vertices.Max(v => v.id) + 1;
+        }
+
+        var newVertex = new Vertex(point)
+        {
+            id = newVertexId,
+        };
+
+        return AddVertex(newVertex);
     }
     public Vertex AddVertex(float x, float y, float z)
     {
@@ -1199,6 +1212,17 @@ public class BMesh
                 Debug.LogWarning("Vertex attribute '" + attr.name + "' is not compatible with mesh attribute definition, ignoring.");
                 // different type, overriding value with default
                 v.attributes[attr.name] = AttributeValue.Copy(attr.defaultValue);
+            }
+        }
+    }
+
+    void EnsureVertexId(Vertex v)
+    {
+        foreach (var vertex in vertices)
+        {
+            if (vertex.id == v.id)
+            {
+                throw new InvalidOperationException("Vertex with id " + v.id + " already exists.");
             }
         }
     }
